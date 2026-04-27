@@ -8,3 +8,4 @@ app credentials.txt
 *.log
 backend/uploads/
 PayerWrapper - cloud/
+backend/uipath-metadata.xml
