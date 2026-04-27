@@ -45,9 +45,20 @@ const upload = multer({
   },
 });
 
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173,https://sohamadageis.github.io")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
   }),
 );
 app.use(express.json());
