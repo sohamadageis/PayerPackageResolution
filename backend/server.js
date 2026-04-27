@@ -33,6 +33,7 @@ const upload = multer({
   storage,
   limits: {
     fileSize: 10 * 1024 * 1024,
+    files: 2,
   },
   fileFilter: (_req, file, callback) => {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
@@ -364,6 +365,21 @@ function extractPayerConfigOutput(job) {
   };
 }
 
+function pickUploadedFile(files, fieldNames) {
+  return files.find((file) => fieldNames.includes(file.fieldname)) || null;
+}
+
+function resolveUploadedCardImages(files) {
+  const frontImage =
+    pickUploadedFile(files, ["frontImage", "front_image", "insurance_card_image", "image"]) || files[0] || null;
+  const backImage =
+    pickUploadedFile(files, ["backImage", "back_image", "insurance_card_back_image"]) ||
+    files.find((file) => file !== frontImage) ||
+    null;
+
+  return { frontImage, backImage };
+}
+
 async function processInsurance(jobId, uploadedFiles, formFields) {
   const localFilePaths = Object.values(uploadedFiles).map((file) => file.path);
 
@@ -419,15 +435,10 @@ app.get("/api/health", (_req, res) => {
 
 app.post(
   "/process-insurance",
-  upload.fields([
-    { name: "frontImage", maxCount: 1 },
-    { name: "backImage", maxCount: 1 },
-    { name: "image", maxCount: 1 },
-  ]),
+  upload.any(),
   async (req, res, next) => {
   try {
-    const frontImage = req.files?.frontImage?.[0] || req.files?.image?.[0] || null;
-    const backImage = req.files?.backImage?.[0] || null;
+    const { frontImage, backImage } = resolveUploadedCardImages(req.files || []);
 
     if (!frontImage && !backImage) {
       return res.status(400).json({ message: "Please upload at least one insurance card image." });
