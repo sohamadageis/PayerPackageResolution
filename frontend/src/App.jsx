@@ -99,8 +99,10 @@ function StatusPill({ status }) {
 
 export default function App() {
   const pollRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const frontFileInputRef = useRef(null);
+  const backFileInputRef = useRef(null);
+  const [frontFile, setFrontFile] = useState(null);
+  const [backFile, setBackFile] = useState(null);
   const [patientState, setPatientState] = useState("");
   const [patientZip, setPatientZip] = useState("");
   const [practiceState, setPracticeState] = useState("");
@@ -120,8 +122,8 @@ export default function App() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!selectedFile) {
-      setError("Please upload an insurance card image first.");
+    if (!frontFile && !backFile) {
+      setError("Please upload at least one insurance card image.");
       return;
     }
 
@@ -132,7 +134,14 @@ export default function App() {
 
     try {
       const formData = new FormData();
-      formData.append("image", selectedFile);
+
+      if (frontFile) {
+        formData.append("frontImage", frontFile);
+      }
+
+      if (backFile) {
+        formData.append("backImage", backFile);
+      }
 
       if (patientState) {
         formData.append("patientState", patientState);
@@ -202,11 +211,16 @@ export default function App() {
   }
 
   function resetFlow() {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (frontFileInputRef.current) {
+      frontFileInputRef.current.value = "";
     }
 
-    setSelectedFile(null);
+    if (backFileInputRef.current) {
+      backFileInputRef.current.value = "";
+    }
+
+    setFrontFile(null);
+    setBackFile(null);
     setPatientState("");
     setPatientZip("");
     setPracticeState("");
@@ -243,16 +257,29 @@ export default function App() {
           </div>
 
           <form className="relative mt-8 space-y-5 rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm sm:p-6" onSubmit={handleSubmit}>
-            <label className="block text-sm font-semibold text-slate-700">
-              Insurance Card Image
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp"
-                onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-                className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
-              />
-            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-semibold text-slate-700">
+                Front Insurance Card Image
+                <input
+                  ref={frontFileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={(event) => setFrontFile(event.target.files?.[0] || null)}
+                  className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                />
+              </label>
+
+              <label className="block text-sm font-semibold text-slate-700">
+                Back Insurance Card Image
+                <input
+                  ref={backFileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={(event) => setBackFile(event.target.files?.[0] || null)}
+                  className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                />
+              </label>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="block text-sm font-semibold text-slate-700">

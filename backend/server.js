@@ -254,15 +254,25 @@ async function uploadFileToUiPathAttachment(localFilePath, originalName, mimeTyp
   };
 }
 
-async function startPayerConfigJob({ attachmentId, fileName, mimeType, patientState, patientZip, practiceState }) {
+async function startPayerConfigJob({ attachments, patientState, patientZip, practiceState }) {
   const token = await getBearerToken();
-  const payload = {
-    insurance_card_image: {
-      ID: attachmentId,
-      FullName: fileName,
-      MimeType: mimeType,
-    },
-  };
+  const payload = {};
+
+  if (attachments.frontImage) {
+    payload.insurance_card_image = {
+      ID: attachments.frontImage.attachmentId,
+      FullName: attachments.frontImage.fullName,
+      MimeType: attachments.frontImage.mimeType,
+    };
+  }
+
+  if (attachments.backImage) {
+    payload.insurance_card_back_image = {
+      ID: attachments.backImage.attachmentId,
+      FullName: attachments.backImage.fullName,
+      MimeType: attachments.backImage.mimeType,
+    };
+  }
 
   if (patientState) {
     payload.patient_state = patientState;
@@ -354,13 +364,18 @@ function extractPayerConfigOutput(job) {
   };
 }
 
-async function processInsurance(jobId, filePath, fileName, mimeType, formFields) {
+async function processInsurance(jobId, uploadedFiles, formFields) {
+  const localFilePaths = Object.values(uploadedFiles).map((file) => file.path);
+
   try {
-    const attachmentUpload = await uploadFileToUiPathAttachment(filePath, fileName, mimeType);
+    const attachmentUploads = {};
+
+    for (const [fieldName, file] of Object.entries(uploadedFiles)) {
+      attachmentUploads[fieldName] = await uploadFileToUiPathAttachment(file.path, file.originalname, file.mimetype);
+    }
+
     const uiPathJobId = await startPayerConfigJob({
-      attachmentId: attachmentUpload.attachmentId,
-      fileName: attachmentUpload.fullName,
-      mimeType: attachmentUpload.mimeType,
+      attachments: attachmentUploads,
       patientState: formFields.patientState,
       patientZip: formFields.patientZip,
       practiceState: formFields.practiceState,
@@ -369,7 +384,7 @@ async function processInsurance(jobId, filePath, fileName, mimeType, formFields)
     jobs[jobId] = {
       ...jobs[jobId],
       uiPathJobId,
-      attachmentId: attachmentUpload.attachmentId,
+      attachments: attachmentUploads,
     };
 
     const completedJob = await pollJobUntilDone(uiPathJobId);
@@ -394,7 +409,7 @@ async function processInsurance(jobId, filePath, fileName, mimeType, formFields)
         "Insurance processing failed.",
     };
   } finally {
-    await fs.promises.unlink(filePath).catch(() => {});
+    await Promise.all(localFilePaths.map((filePath) => fs.promises.unlink(filePath).catch(() => {})));
   }
 }
 
@@ -402,10 +417,20 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/process-insurance", upload.single("image"), async (req, res, next) => {
+app.post(
+  "/process-insurance",
+  upload.fields([
+    { name: "frontImage", maxCount: 1 },
+    { name: "backImage", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+  ]),
+  async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Please upload an insurance card image." });
+    const frontImage = req.files?.frontImage?.[0] || req.files?.image?.[0] || null;
+    const backImage = req.files?.backImage?.[0] || null;
+
+    if (!frontImage && !backImage) {
+      return res.status(400).json({ message: "Please upload at least one insurance card image." });
     }
 
     const formFields = {
@@ -421,16 +446,24 @@ app.post("/process-insurance", upload.single("image"), async (req, res, next) =>
       result: null,
       error: null,
       uiPathJobId: null,
-      attachmentId: null,
+      attachments: {},
     };
 
     log("Accepted insurance processing request", {
       jobId,
-      fileName: req.file.originalname,
+      frontImage: frontImage?.originalname || null,
+      backImage: backImage?.originalname || null,
       ...formFields,
     });
 
-    void processInsurance(jobId, req.file.path, req.file.originalname, req.file.mimetype, formFields);
+    void processInsurance(
+      jobId,
+      {
+        ...(frontImage ? { frontImage } : {}),
+        ...(backImage ? { backImage } : {}),
+      },
+      formFields,
+    );
 
     return res.status(202).json({
       job_id: jobId,
@@ -439,7 +472,8 @@ app.post("/process-insurance", upload.single("image"), async (req, res, next) =>
   } catch (error) {
     return next(error);
   }
-});
+  },
+);
 
 app.get("/status/:job_id", (req, res) => {
   const job = jobs[req.params.job_id];
