@@ -99,6 +99,7 @@ function StatusPill({ status }) {
 
 export default function App() {
   const pollRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [patientState, setPatientState] = useState("");
   const [patientZip, setPatientZip] = useState("");
@@ -201,6 +202,10 @@ export default function App() {
   }
 
   function resetFlow() {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     setSelectedFile(null);
     setPatientState("");
     setPatientZip("");
@@ -241,6 +246,7 @@ export default function App() {
             <label className="block text-sm font-semibold text-slate-700">
               Insurance Card Image
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".jpg,.jpeg,.png,.webp"
                 onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
