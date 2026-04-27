@@ -40,7 +40,8 @@ This project keeps `payer_config` unchanged and adds a wrapper-based website int
 - `UIPATH_BUCKET_ID`
 - `UIPATH_BUCKET_NAME`
 - `UIPATH_AGENT_URL`
-- `UIPATH_WRAPPER_RELEASE_KEY`
+- `UIPATH_RELEASE_KEY`
+- `FRONTEND_ORIGIN`
 
 ## Manual UiPath Publish Steps
 
@@ -49,8 +50,27 @@ This project keeps `payer_config` unchanged and adds a wrapper-based website int
 3. Publish the process as `payer_wrapper`.
 4. Deploy `payer_wrapper` in the same Orchestrator folder as `payer_config`.
 5. Confirm the storage bucket used by the backend is also in that same folder.
-6. Copy the deployed wrapper release key into `UIPATH_WRAPPER_RELEASE_KEY`.
+6. Copy the deployed payer package workflow release key into `UIPATH_RELEASE_KEY`.
 7. Start the backend and frontend.
+
+## Render Backend Environment
+
+Set these in Render's Environment tab:
+
+```env
+UIPATH_CLIENT_ID=your_client_id
+UIPATH_CLIENT_SECRET=your_client_secret
+UIPATH_SCOPE=OR.Default
+UIPATH_BASE_URL=https://cloud.uipath.com/adagevlumhmj/DefaultTenant/orchestrator_
+UIPATH_FOLDER_ID=7793541
+UIPATH_AGENT_URL=https://cloud.uipath.com/adagevlumhmj/DefaultTenant/orchestrator_/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs
+UIPATH_RELEASE_KEY=your_payer_config_release_key
+POLL_INTERVAL_MS=3000
+POLL_TIMEOUT_MS=600000
+FRONTEND_ORIGIN=https://sohamadageis.github.io,http://localhost:5173
+```
+
+`UIPATH_ATTACHMENT_SEED_JOB_KEY` is optional. If it is not set, the backend tries to find the latest wrapper job by `UIPATH_WRAPPER_RELEASE_NAME`.
 
 ## Local Run
 
