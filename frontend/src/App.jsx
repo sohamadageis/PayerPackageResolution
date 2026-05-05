@@ -99,10 +99,14 @@ function StatusPill({ status }) {
 
 export default function App() {
   const pollRef = useRef(null);
-  const frontFileInputRef = useRef(null);
-  const backFileInputRef = useRef(null);
-  const [frontFile, setFrontFile] = useState(null);
-  const [backFile, setBackFile] = useState(null);
+  const insuranceFrontFileInputRef = useRef(null);
+  const insuranceBackFileInputRef = useRef(null);
+  const secondaryFrontFileInputRef = useRef(null);
+  const secondaryBackFileInputRef = useRef(null);
+  const [insuranceFrontFile, setInsuranceFrontFile] = useState(null);
+  const [insuranceBackFile, setInsuranceBackFile] = useState(null);
+  const [secondaryFrontFile, setSecondaryFrontFile] = useState(null);
+  const [secondaryBackFile, setSecondaryBackFile] = useState(null);
   const [patientState, setPatientState] = useState("");
   const [patientZip, setPatientZip] = useState("");
   const [practiceState, setPracticeState] = useState("");
@@ -122,11 +126,6 @@ export default function App() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!frontFile && !backFile) {
-      setError("Please upload at least one insurance card image.");
-      return;
-    }
-
     setError("");
     setResult(null);
     setJobId("");
@@ -135,12 +134,20 @@ export default function App() {
     try {
       const formData = new FormData();
 
-      if (frontFile) {
-        formData.append("frontImage", frontFile);
+      if (insuranceFrontFile) {
+        formData.append("insuranceFrontImage", insuranceFrontFile);
       }
 
-      if (backFile) {
-        formData.append("backImage", backFile);
+      if (insuranceBackFile) {
+        formData.append("insuranceBackImage", insuranceBackFile);
+      }
+
+      if (secondaryFrontFile) {
+        formData.append("secondaryFrontImage", secondaryFrontFile);
+      }
+
+      if (secondaryBackFile) {
+        formData.append("secondaryBackImage", secondaryBackFile);
       }
 
       if (patientState) {
@@ -211,16 +218,26 @@ export default function App() {
   }
 
   function resetFlow() {
-    if (frontFileInputRef.current) {
-      frontFileInputRef.current.value = "";
+    if (insuranceFrontFileInputRef.current) {
+      insuranceFrontFileInputRef.current.value = "";
     }
 
-    if (backFileInputRef.current) {
-      backFileInputRef.current.value = "";
+    if (insuranceBackFileInputRef.current) {
+      insuranceBackFileInputRef.current.value = "";
     }
 
-    setFrontFile(null);
-    setBackFile(null);
+    if (secondaryFrontFileInputRef.current) {
+      secondaryFrontFileInputRef.current.value = "";
+    }
+
+    if (secondaryBackFileInputRef.current) {
+      secondaryBackFileInputRef.current.value = "";
+    }
+
+    setInsuranceFrontFile(null);
+    setInsuranceBackFile(null);
+    setSecondaryFrontFile(null);
+    setSecondaryBackFile(null);
     setPatientState("");
     setPatientZip("");
     setPracticeState("");
@@ -250,35 +267,72 @@ export default function App() {
             <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
               Payer Package Resolution
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              Just upload insurance card and wait for magic!
-            </p>
-
           </div>
 
           <form className="relative mt-8 space-y-5 rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm sm:p-6" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-semibold text-slate-700">
-                Front Insurance Card Image
-                <input
-                  ref={frontFileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  onChange={(event) => setFrontFile(event.target.files?.[0] || null)}
-                  className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
-                />
-              </label>
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+              If the card is traditional Medicare, add patient state and ZIP for precise package resolution.
+            </p>
 
-              <label className="block text-sm font-semibold text-slate-700">
-                Back Insurance Card Image
-                <input
-                  ref={backFileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  onChange={(event) => setBackFile(event.target.files?.[0] || null)}
-                  className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
-                />
-              </label>
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Primary Card</h2>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Insurance Card Front
+                  <input
+                    ref={insuranceFrontFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(event) => setInsuranceFrontFile(event.target.files?.[0] || null)}
+                    className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                  />
+                </label>
+
+                <label className="block text-sm font-semibold text-slate-700">
+                  Insurance Card Back
+                  <input
+                    ref={insuranceBackFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(event) => setInsuranceBackFile(event.target.files?.[0] || null)}
+                    className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Secondary Card</h2>
+                <p className="mt-1 text-sm text-slate-600">Use this for the second card set, like a Medicare or veteran-related secondary card.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Secondary Card Front
+                  <input
+                    ref={secondaryFrontFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(event) => setSecondaryFrontFile(event.target.files?.[0] || null)}
+                    className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                  />
+                </label>
+
+                <label className="block text-sm font-semibold text-slate-700">
+                  Secondary Card Back
+                  <input
+                    ref={secondaryBackFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(event) => setSecondaryBackFile(event.target.files?.[0] || null)}
+                    className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:font-semibold file:text-indigo-700"
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">

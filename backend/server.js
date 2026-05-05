@@ -32,8 +32,8 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024,
-    files: 2,
+    fileSize: 5 * 1024 * 1024,
+    files: 4,
   },
   fileFilter: (_req, file, callback) => {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
@@ -259,19 +259,35 @@ async function startPayerConfigJob({ attachments, patientState, patientZip, prac
   const token = await getBearerToken();
   const payload = {};
 
-  if (attachments.frontImage) {
+  if (attachments.insuranceFrontImage) {
     payload.insurance_card_image = {
-      ID: attachments.frontImage.attachmentId,
-      FullName: attachments.frontImage.fullName,
-      MimeType: attachments.frontImage.mimeType,
+      ID: attachments.insuranceFrontImage.attachmentId,
+      FullName: attachments.insuranceFrontImage.fullName,
+      MimeType: attachments.insuranceFrontImage.mimeType,
     };
   }
 
-  if (attachments.backImage) {
+  if (attachments.insuranceBackImage) {
     payload.insurance_card_back_image = {
-      ID: attachments.backImage.attachmentId,
-      FullName: attachments.backImage.fullName,
-      MimeType: attachments.backImage.mimeType,
+      ID: attachments.insuranceBackImage.attachmentId,
+      FullName: attachments.insuranceBackImage.fullName,
+      MimeType: attachments.insuranceBackImage.mimeType,
+    };
+  }
+
+  if (attachments.secondaryFrontImage) {
+    payload.secondary_card_image = {
+      ID: attachments.secondaryFrontImage.attachmentId,
+      FullName: attachments.secondaryFrontImage.fullName,
+      MimeType: attachments.secondaryFrontImage.mimeType,
+    };
+  }
+
+  if (attachments.secondaryBackImage) {
+    payload.secondary_card_back_image = {
+      ID: attachments.secondaryBackImage.attachmentId,
+      FullName: attachments.secondaryBackImage.fullName,
+      MimeType: attachments.secondaryBackImage.mimeType,
     };
   }
 
@@ -365,19 +381,34 @@ function extractPayerConfigOutput(job) {
   };
 }
 
-function pickUploadedFile(files, fieldNames) {
-  return files.find((file) => fieldNames.includes(file.fieldname)) || null;
-}
-
 function resolveUploadedCardImages(files) {
-  const frontImage =
-    pickUploadedFile(files, ["frontImage", "front_image", "insurance_card_image", "image"]) || files[0] || null;
-  const backImage =
-    pickUploadedFile(files, ["backImage", "back_image", "insurance_card_back_image"]) ||
-    files.find((file) => file !== frontImage) ||
-    null;
+  const byField = new Map(files.map((file) => [file.fieldname, file]));
 
-  return { frontImage, backImage };
+  return {
+    insuranceFrontImage:
+      byField.get("insuranceFrontImage") ||
+      byField.get("frontImage") ||
+      byField.get("front_image") ||
+      byField.get("insurance_card_image") ||
+      byField.get("image") ||
+      null,
+    insuranceBackImage:
+      byField.get("insuranceBackImage") ||
+      byField.get("backImage") ||
+      byField.get("back_image") ||
+      byField.get("insurance_card_back_image") ||
+      null,
+    secondaryFrontImage:
+      byField.get("secondaryFrontImage") ||
+      byField.get("secondary_front_image") ||
+      byField.get("secondary_card_image") ||
+      null,
+    secondaryBackImage:
+      byField.get("secondaryBackImage") ||
+      byField.get("secondary_back_image") ||
+      byField.get("secondary_card_back_image") ||
+      null,
+  };
 }
 
 async function processInsurance(jobId, uploadedFiles, formFields) {
@@ -438,11 +469,7 @@ app.post(
   upload.any(),
   async (req, res, next) => {
   try {
-    const { frontImage, backImage } = resolveUploadedCardImages(req.files || []);
-
-    if (!frontImage && !backImage) {
-      return res.status(400).json({ message: "Please upload at least one insurance card image." });
-    }
+    const cardImages = resolveUploadedCardImages(req.files || []);
 
     const formFields = {
       patientState: req.body.patientState?.trim() || "",
@@ -462,16 +489,20 @@ app.post(
 
     log("Accepted insurance processing request", {
       jobId,
-      frontImage: frontImage?.originalname || null,
-      backImage: backImage?.originalname || null,
+      insuranceFrontImage: cardImages.insuranceFrontImage?.originalname || null,
+      insuranceBackImage: cardImages.insuranceBackImage?.originalname || null,
+      secondaryFrontImage: cardImages.secondaryFrontImage?.originalname || null,
+      secondaryBackImage: cardImages.secondaryBackImage?.originalname || null,
       ...formFields,
     });
 
     void processInsurance(
       jobId,
       {
-        ...(frontImage ? { frontImage } : {}),
-        ...(backImage ? { backImage } : {}),
+        ...(cardImages.insuranceFrontImage ? { insuranceFrontImage: cardImages.insuranceFrontImage } : {}),
+        ...(cardImages.insuranceBackImage ? { insuranceBackImage: cardImages.insuranceBackImage } : {}),
+        ...(cardImages.secondaryFrontImage ? { secondaryFrontImage: cardImages.secondaryFrontImage } : {}),
+        ...(cardImages.secondaryBackImage ? { secondaryBackImage: cardImages.secondaryBackImage } : {}),
       },
       formFields,
     );
@@ -502,7 +533,7 @@ app.get("/status/:job_id", (req, res) => {
 
 app.use((err, _req, res, _next) => {
   if (err?.code === "LIMIT_FILE_SIZE") {
-    return res.status(413).json({ message: "Each image must be 10MB or smaller." });
+    return res.status(413).json({ message: "Each image must be 5MB or smaller." });
   }
 
   if (err?.message) {
