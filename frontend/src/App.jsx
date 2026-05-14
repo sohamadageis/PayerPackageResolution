@@ -318,7 +318,10 @@ export default function App() {
         setWorkflowHistory(response.data.workflowHistory || []);
 
         if (nextStatus === "completed") {
-          setResult(response.data.result);
+          setResult({
+            ...response.data.result,
+            coordination_of_benefits_notice: response.data.coordination_of_benefits_notice,
+          });
           window.clearInterval(pollRef.current);
           pollRef.current = null;
         }
