@@ -689,6 +689,7 @@ app.get("/status/:job_id", (req, res) => {
     uiPathState: job.uiPathState || null,
     uiPathSubState: job.uiPathSubState || null,
     workflowHistory: job.workflowHistory || [],
+    coordination_of_benefits_notice: job.result?.coordination_of_benefits_notice || null,
   });
 });
 
