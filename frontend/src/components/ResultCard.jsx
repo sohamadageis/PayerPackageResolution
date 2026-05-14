@@ -69,10 +69,66 @@ function getFallbackPrimaryInsurance(result) {
   return null;
 }
 
+function normalizeCoordinationOfBenefitsValue(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (Array.isArray(value)) {
+    const joined = value
+      .map((entry) => normalizeCoordinationOfBenefitsValue(entry))
+      .filter(Boolean)
+      .join(" ");
+
+    return joined || null;
+  }
+
+  if (typeof value === "object") {
+    const nestedKeys = ["notice", "message", "text", "value", "reason", "summary", "details"];
+
+    for (const key of nestedKeys) {
+      const normalized = normalizeCoordinationOfBenefitsValue(value[key]);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
+  }
+
+  return String(value);
+}
+
+function getCoordinationOfBenefitsNotice(result) {
+  const directKeys = [
+    "coordination_of_benefits_notice",
+    "coordinationOfBenefitsNotice",
+    "coordination_of_benefits",
+    "coordinationOfBenefits",
+    "cob_notice",
+    "cobNotice",
+  ];
+
+  for (const key of directKeys) {
+    const normalized = normalizeCoordinationOfBenefitsValue(result?.[key]);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
 export default function ResultCard({ result, onStartOver }) {
-  const { decision, extracted_card_fields, secondary_insurance, coordination_of_benefits_notice } = result;
+  const { decision, extracted_card_fields, secondary_insurance } = result;
   const primaryInsurance = getFallbackPrimaryInsurance(result);
   const hasInsuranceCards = primaryInsurance || (secondary_insurance?.insuranceplanname && secondary_insurance?.insuranceid);
+  const coordinationOfBenefitsNotice = getCoordinationOfBenefitsNotice(result);
 
   return (
     <section className="space-y-6 rounded-[2rem] border border-white/70 bg-white/88 p-6 shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur sm:p-8">
@@ -91,7 +147,7 @@ export default function ResultCard({ result, onStartOver }) {
         </section>
       ) : null}
 
-      {coordination_of_benefits_notice && coordination_of_benefits_notice.trim() ? (
+      {coordinationOfBenefitsNotice ? (
         <div className="rounded-[1.6rem] border border-amber-200/70 bg-[linear-gradient(145deg,_rgba(254,252,232,0.96),_rgba(254,243,199,0.72))] p-5 shadow-sm">
           <div className="flex gap-4">
             <div className="shrink-0 pt-1">
@@ -101,7 +157,7 @@ export default function ResultCard({ result, onStartOver }) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-amber-900">Coordination of Benefits Notice</h3>
-              <p className="mt-2 text-sm leading-relaxed text-amber-800">{coordination_of_benefits_notice}</p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-800">{coordinationOfBenefitsNotice}</p>
             </div>
           </div>
         </div>

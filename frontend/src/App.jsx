@@ -318,9 +318,20 @@ export default function App() {
         setWorkflowHistory(response.data.workflowHistory || []);
 
         if (nextStatus === "completed") {
+          const nextResult = response.data.result || {};
+          const coordinationOfBenefitsNotice =
+            response.data.coordination_of_benefits_notice ??
+            nextResult.coordination_of_benefits_notice ??
+            nextResult.coordinationOfBenefitsNotice ??
+            nextResult.coordination_of_benefits ??
+            nextResult.coordinationOfBenefits ??
+            nextResult.cob_notice ??
+            nextResult.cobNotice ??
+            null;
+
           setResult({
-            ...response.data.result,
-            coordination_of_benefits_notice: response.data.coordination_of_benefits_notice,
+            ...nextResult,
+            ...(coordinationOfBenefitsNotice ? { coordination_of_benefits_notice: coordinationOfBenefitsNotice } : {}),
           });
           window.clearInterval(pollRef.current);
           pollRef.current = null;

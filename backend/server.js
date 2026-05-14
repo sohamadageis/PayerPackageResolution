@@ -148,6 +148,65 @@ function extractErrorMessage(error) {
   return "Insurance processing failed.";
 }
 
+function normalizeCoordinationOfBenefitsValue(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (Array.isArray(value)) {
+    const joined = value
+      .map((entry) => normalizeCoordinationOfBenefitsValue(entry))
+      .filter(Boolean)
+      .join(" ");
+
+    return joined || null;
+  }
+
+  if (typeof value === "object") {
+    const nestedKeys = ["notice", "message", "text", "value", "reason", "summary", "details"];
+
+    for (const key of nestedKeys) {
+      const normalized = normalizeCoordinationOfBenefitsValue(value[key]);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
+  }
+
+  return String(value);
+}
+
+function extractCoordinationOfBenefitsNotice(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const directKeys = [
+    "coordination_of_benefits_notice",
+    "coordinationOfBenefitsNotice",
+    "coordination_of_benefits",
+    "coordinationOfBenefits",
+    "cob_notice",
+    "cobNotice",
+  ];
+
+  for (const key of directKeys) {
+    const normalized = normalizeCoordinationOfBenefitsValue(payload[key]);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
 function describeError(error) {
   return {
     message: error?.message || null,
@@ -583,11 +642,20 @@ async function processInsurance(jobId, uploadedFiles, formFields) {
     });
     log("UiPath job completed polling", { jobId, uiPathJobId, state: completedJob?.State || null });
     const payerOutput = extractPayerConfigOutput(completedJob);
+    const coordinationOfBenefitsNotice = extractCoordinationOfBenefitsNotice(payerOutput.result);
 
     jobs[jobId] = {
       ...jobs[jobId],
       status: payerOutput.status,
-      result: payerOutput.result,
+      result:
+        payerOutput.result && typeof payerOutput.result === "object"
+          ? {
+              ...payerOutput.result,
+              ...(coordinationOfBenefitsNotice
+                ? { coordination_of_benefits_notice: coordinationOfBenefitsNotice }
+                : {}),
+            }
+          : payerOutput.result,
       error: payerOutput.error,
       uiPathJobId,
       uiPathState: completedJob?.State || null,
@@ -689,7 +757,7 @@ app.get("/status/:job_id", (req, res) => {
     uiPathState: job.uiPathState || null,
     uiPathSubState: job.uiPathSubState || null,
     workflowHistory: job.workflowHistory || [],
-    coordination_of_benefits_notice: job.result?.coordination_of_benefits_notice || null,
+    coordination_of_benefits_notice: extractCoordinationOfBenefitsNotice(job.result),
   });
 });
 
