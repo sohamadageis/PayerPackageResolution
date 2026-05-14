@@ -6,7 +6,7 @@ const { startAgentJob, pollJobUntilComplete } = require("../services/jobs");
 
 const router = express.Router();
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 class AppError extends Error {

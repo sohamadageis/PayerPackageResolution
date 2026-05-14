@@ -26,7 +26,7 @@ const initialFormState = {
 };
 
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
-const maxFileSize = 10 * 1024 * 1024;
+const maxFileSize = 4 * 1024 * 1024;
 
 function UploadField({ label, helperText, file, onFileChange, id }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -128,7 +128,7 @@ export default function UploadForm({ onResolved, onError }) {
     }
 
     if (file.size > maxFileSize) {
-      return "Each image must be 10MB or smaller.";
+      return "Each image must be 4MB or smaller.";
     }
 
     return null;
@@ -226,7 +226,7 @@ export default function UploadForm({ onResolved, onError }) {
             <UploadField
               id="frontImage"
               label="Front Card Image"
-              helperText="JPG, PNG, or WEBP up to 10MB"
+              helperText="JPG, PNG, or WEBP up to 4MB"
               file={files.frontImage}
               onFileChange={(file) => handleFileChange("frontImage", file)}
             />

@@ -2,53 +2,38 @@ function getDecisionConfig(decision) {
   switch (decision) {
     case "auto_assign":
       return {
-        label: "Auto-Assigned",
-        badgeClass: "bg-green-50 text-green-700 ring-green-200",
+        label: "Auto-Assign",
+        badgeClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+        panelClass: "border-emerald-200/70 bg-[linear-gradient(135deg,_rgba(236,253,245,0.95),_rgba(209,250,229,0.7))]",
+        accentClass: "from-emerald-500 to-green-400",
       };
     case "manual_review":
       return {
         label: "Needs Review",
-        badgeClass: "bg-yellow-50 text-yellow-800 ring-yellow-200",
+        badgeClass: "bg-amber-50 text-amber-800 ring-amber-200",
+        panelClass: "border-amber-200/70 bg-[linear-gradient(135deg,_rgba(255,251,235,0.95),_rgba(254,243,199,0.72))]",
+        accentClass: "from-amber-500 to-yellow-400",
       };
     default:
       return {
         label: "No Match Found",
-        badgeClass: "bg-red-50 text-red-700 ring-red-200",
+        badgeClass: "bg-rose-50 text-rose-700 ring-rose-200",
+        panelClass: "border-rose-200/70 bg-[linear-gradient(135deg,_rgba(255,241,242,0.95),_rgba(254,205,211,0.72))]",
+        accentClass: "from-rose-500 to-red-400",
       };
   }
 }
 
-function getBarColor(score) {
-  if (score >= 85) {
-    return "bg-green-500";
-  }
-
-  if (score >= 60) {
-    return "bg-yellow-500";
-  }
-
-  return "bg-red-500";
-}
-
-export default function StatusBadge({ decision, confidence_score = 0 }) {
+export default function StatusBadge({ decision }) {
   const config = getDecisionConfig(decision);
-  const boundedScore = Math.max(0, Math.min(100, Number(confidence_score) || 0));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className={`overflow-hidden rounded-[1.6rem] border p-5 shadow-sm ${config.panelClass}`}>
+      <div className={`mb-4 h-1.5 rounded-full bg-gradient-to-r ${config.accentClass}`} />
+      <div className="flex items-center">
         <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ${config.badgeClass}`}>
           {config.label}
         </span>
-        <div className="min-w-48 flex-1 sm:max-w-xs">
-          <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-            <span>Confidence</span>
-            <span className="font-semibold text-slate-900">{boundedScore}%</span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
-            <div className={`h-full rounded-full transition-all ${getBarColor(boundedScore)}`} style={{ width: `${boundedScore}%` }} />
-          </div>
-        </div>
       </div>
     </div>
   );

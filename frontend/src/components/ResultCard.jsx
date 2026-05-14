@@ -6,14 +6,6 @@ function formatFieldLabel(key) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatBoolean(value) {
-  if (typeof value !== "boolean") {
-    return null;
-  }
-
-  return value ? "Yes" : "No";
-}
-
 function DetailRow({ label, value }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[180px_1fr]">
@@ -23,89 +15,90 @@ function DetailRow({ label, value }) {
   );
 }
 
-function getSelectedPackage(result) {
-  if (result.selected_package) {
-    return result.selected_package;
+function InsurancePackageCard({ title, insurance, tone }) {
+  if (!insurance?.insuranceplanname || !insurance?.insuranceid) {
+    return null;
+  }
+
+  const toneClasses =
+    tone === "primary"
+      ? "border-emerald-200/70 bg-[linear-gradient(145deg,_rgba(236,253,245,0.96),_rgba(209,250,229,0.7))]"
+      : "border-sky-200/70 bg-[linear-gradient(145deg,_rgba(240,249,255,0.96),_rgba(224,242,254,0.72))]";
+
+  const labelClasses =
+    tone === "primary"
+      ? "text-emerald-700"
+      : "text-sky-700";
+
+  return (
+    <article className={`overflow-hidden rounded-[1.6rem] border p-5 shadow-sm ${toneClasses}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${labelClasses}`}>{title}</p>
+          <h3 className="mt-3 text-xl font-bold leading-tight text-slate-900">{insurance.insuranceplanname}</h3>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "primary" ? "bg-white/80 text-emerald-700" : "bg-white/80 text-sky-700"}`}>
+          {tone === "primary" ? "Priority" : "Linked"}
+        </span>
+      </div>
+      <p className="mt-5 text-sm text-slate-600">
+        Insurance ID: <span className="text-lg font-semibold text-slate-900">{insurance.insuranceid}</span>
+      </p>
+    </article>
+  );
+}
+
+function getFallbackPrimaryInsurance(result) {
+  if (result.primary_insurance?.insuranceplanname && result.primary_insurance?.insuranceid) {
+    return result.primary_insurance;
   }
 
   if (Array.isArray(result.top_candidates) && result.top_candidates.length > 0) {
-    return result.top_candidates.find((candidate) => candidate.rank === 1) || result.top_candidates[0];
+    const rankOne = result.top_candidates.find((candidate) => candidate.rank === 1) || result.top_candidates[0];
+
+    if (!rankOne) {
+      return null;
+    }
+
+    return {
+      insuranceid: rankOne.insuranceid,
+      insuranceplanname: rankOne.insuranceplanname,
+    };
   }
 
   return null;
 }
 
-function buildSummaryItems(result) {
-  return [
-    ["Resolved Payer", result.resolved_payer_name],
-    ["Plan Type", result.plan_type_detected],
-    ["Insurance Subtype", result.insurance_subtype],
-    ["Product Family", result.product_family],
-    ["Derived Region", result.derived_region],
-    ["Search Strategy", result.search_strategy_used],
-    ["Exchange Inferred", formatBoolean(result.exchange_inferred)],
-    ["Sub-Plan Keyword", result.sub_plan_keyword],
-  ].filter(([, value]) => value !== undefined && value !== null && value !== "");
-}
-
 export default function ResultCard({ result, onStartOver }) {
-  const {
-    decision,
-    confidence_score,
-    explanation,
-    extracted_card_fields,
-  } = result;
-  const selectedPackage = getSelectedPackage(result);
-  const summaryItems = buildSummaryItems(result);
-  const selectedRationale = selectedPackage?.why_selected || selectedPackage?.score_breakdown;
+  const { decision, extracted_card_fields, secondary_insurance } = result;
+  const primaryInsurance = getFallbackPrimaryInsurance(result);
+  const hasInsuranceCards = primaryInsurance || (secondary_insurance?.insuranceplanname && secondary_insurance?.insuranceid);
 
   return (
-    <section className="space-y-6 rounded-3xl bg-white p-6 shadow-md sm:p-8">
-      <StatusBadge decision={decision} confidence_score={confidence_score} />
+    <section className="space-y-6 rounded-[2rem] border border-white/70 bg-white/88 p-6 shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur sm:p-8">
+      <StatusBadge decision={decision} />
 
-      {(decision === "auto_assign" || decision === "manual_review") && selectedPackage ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Selected Package</p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedPackage.insuranceplanname}</h2>
-          <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-            <DetailRow label="Athena Package ID" value={selectedPackage.insuranceid} />
-            <DetailRow label="Score" value={selectedPackage.score} />
-            <DetailRow label="Found In Pool" value={selectedPackage.found_in_pool || selectedPackage.affiliationname} />
-            <DetailRow label="Source Call" value={selectedPackage.source_call} />
-          </dl>
-          {selectedRationale ? (
-            <details className="mt-5 rounded-xl bg-white p-4" open>
-              <summary className="cursor-pointer text-sm font-semibold text-slate-800">Why this package?</summary>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{selectedRationale}</p>
-            </details>
-          ) : null}
-        </div>
+      {(decision === "auto_assign" || decision === "manual_review") && hasInsuranceCards ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Insurance Packages</h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <InsurancePackageCard title="Primary Insurance" insurance={primaryInsurance} tone="primary" />
+            <InsurancePackageCard title="Secondary Insurance" insurance={secondary_insurance} tone="secondary" />
+          </div>
+        </section>
       ) : null}
 
       {decision === "no_match" ? (
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-red-700">
+        <div className="rounded-[1.6rem] border border-red-100 bg-[linear-gradient(145deg,_rgba(254,242,242,0.96),_rgba(254,226,226,0.72))] p-5 text-red-700 shadow-sm">
           No matching package found. Please assign manually.
         </div>
       ) : null}
 
-      {summaryItems.length ? (
-        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Decision Summary</h3>
-          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-            {summaryItems.map(([label, value]) => (
-              <DetailRow key={label} label={label} value={value} />
-            ))}
-          </dl>
-        </section>
-      ) : null}
-
-      <details className="rounded-2xl border border-slate-200 bg-slate-50 p-5" open>
-        <summary className="cursor-pointer text-sm font-semibold text-slate-900">Full Explanation</summary>
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{explanation || "No explanation returned."}</p>
-      </details>
-
       {extracted_card_fields ? (
-        <details className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <details className="rounded-[1.6rem] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,0.92))] p-5 shadow-sm">
           <summary className="cursor-pointer text-sm font-semibold text-slate-900">Extracted Card Fields</summary>
           <dl className="mt-4 grid gap-3">
             {Object.entries(extracted_card_fields).map(([key, value]) => (
@@ -118,7 +111,7 @@ export default function ResultCard({ result, onStartOver }) {
       <button
         type="button"
         onClick={onStartOver}
-        className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+        className="inline-flex items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#0f172a,_#312e81_45%,_#0369a1)] px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(49,46,129,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(49,46,129,0.32)]"
       >
         Start Over
       </button>

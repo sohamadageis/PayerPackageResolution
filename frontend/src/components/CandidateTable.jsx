@@ -19,20 +19,20 @@ function scoreStyles(score) {
   };
 }
 
-function FlagPill({ label, value }) {
-  if (typeof value !== "boolean") {
-    return null;
+function getRankLabel(rank) {
+  if (rank === 1) {
+    return "Rank 1";
   }
 
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-        value ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {label}: {value ? "Yes" : "No"}
-    </span>
-  );
+  if (rank === 2) {
+    return "Rank 2";
+  }
+
+  if (rank === 3) {
+    return "Rank 3";
+  }
+
+  return `Rank ${rank}`;
 }
 
 export default function CandidateTable({ candidates = [] }) {
@@ -41,63 +41,35 @@ export default function CandidateTable({ candidates = [] }) {
   }
 
   return (
-    <section className="rounded-3xl bg-white shadow-md">
-      <div className="border-b border-slate-200 px-6 py-5">
-        <h3 className="text-lg font-semibold text-slate-900">Top Candidates</h3>
-        <p className="mt-1 text-sm text-slate-500">Review the ranked package matches returned by the agent.</p>
+    <section className="rounded-[2rem] border border-white/70 bg-white/88 shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur">
+      <div className="border-b border-slate-200/80 px-6 py-5">
+        <h3 className="text-xl font-semibold text-slate-900">Other Potential Packages</h3>
       </div>
 
       <div className="space-y-4 p-6">
         {candidates.map((candidate) => {
           const styles = scoreStyles(candidate.score ?? 0);
-          const rationale = candidate.why_this_rank || candidate.score_breakdown || "No ranking explanation provided.";
 
           return (
             <article
               key={`${candidate.rank}-${candidate.insuranceid}`}
-              className={`rounded-2xl border bg-slate-50 p-5 ${styles.border}`}
+              className={`rounded-[1.5rem] border bg-[linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,0.92))] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${styles.border}`}
             >
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Rank {candidate.rank}</span>
-                    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${styles.badge}`}>
-                      Score {candidate.score ?? "-"}
-                    </span>
-                  </div>
-                  <h4 className="mt-3 text-xl font-semibold text-slate-900">{candidate.insuranceplanname}</h4>
-                  <p className="mt-1 text-sm text-slate-500">Athena ID: {candidate.insuranceid || "-"}</p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    {getRankLabel(candidate.rank)}
+                  </p>
+                  <h4 className="mt-3 text-lg font-semibold leading-tight text-slate-900">{candidate.insuranceplanname || "-"}</h4>
+                  <p className="mt-3 text-sm text-slate-600">
+                    Insurance ID: <span className="text-lg font-semibold text-slate-900">{candidate.insuranceid || "-"}</span>
+                  </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <FlagPill label="Product Family" value={candidate.product_family_match} />
-                  <FlagPill label="Exchange" value={candidate.exchange_match} />
-                </div>
+                <span className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold shadow-sm ${styles.badge}`}>
+                  {candidate.score ?? 0}%
+                </span>
               </div>
-
-              <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Found In Pool</dt>
-                  <dd className="mt-1 text-sm text-slate-800">{candidate.found_in_pool || candidate.affiliationname || "-"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Source Call</dt>
-                  <dd className="mt-1 text-sm text-slate-800">{candidate.source_call || "-"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">State</dt>
-                  <dd className="mt-1 text-sm text-slate-800">{candidate.state || "-"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Display Name</dt>
-                  <dd className="mt-1 text-sm text-slate-800">{candidate.insuranceplandisplayname || "-"}</dd>
-                </div>
-              </dl>
-
-              <details className="mt-5 rounded-xl bg-white p-4" open={candidate.rank === 1}>
-                <summary className="cursor-pointer text-sm font-semibold text-slate-800">Scoring Breakdown</summary>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{rationale}</p>
-              </details>
             </article>
           );
         })}
